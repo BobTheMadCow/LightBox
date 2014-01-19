@@ -4,7 +4,7 @@
 #define BG_COLOR_DEFAULT GColorBlack
 #define FG_COLOR_DEFAULT GColorWhite
 #define MAX_LIGHTS 4
-#define MAX_STARTUP_SEQUENCES 2
+#define MAX_STARTUP_SEQUENCES 3
 #define CURVE AnimationCurveEaseInOut
 #define ANIMATION_DELAY 250
 #define ANIMATION_DURATION 750
@@ -236,16 +236,23 @@ static void init_layers()
 			light[1] = layer_create(GRect(-144,168,144,168));
 			light[2] = layer_create(GRect(144,168,144,168));
 			light[3] = layer_create(GRect(144,-168,144,168));
-			mode = Simultaneous;
+			mode = Sequential;
 			break;
-		default:
+		case 1:
 			//Center point
 			light[0] = layer_create(GRect(72,84,0,0));
 			light[1] = layer_create(GRect(73,84,0,0));
 			light[2] = layer_create(GRect(73,85,0,0));
 			light[3] = layer_create(GRect(72,85,0,0));
-			mode = Simultaneous;
+			mode = Staggered;
 			break;
+		case 2:
+			//Full screen
+			light[0] = layer_create(GRect(0,0,144,168));
+			light[1] = layer_create(GRect(0,0,144,168));
+			light[2] = layer_create(GRect(0,0,144,168));
+			light[3] = layer_create(GRect(0,0,144,168));
+			mode = Simultaneous;
 	}
 	
 	for(int i = 0; i < MAX_LIGHTS; i++)
