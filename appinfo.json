@@ -2,18 +2,24 @@
     "versionLabel": "1.0",
     "uuid": "24b294d7-625f-4138-820f-af5fbcd5fd54",
     "appKeys": {},
-    "longName": "LightBox",
+    "longName": "Lightbox",
     "versionCode": 1,
     "capabilities": [
         ""
     ],
-    "shortName": "LightBox",
+    "shortName": "Lightbox",
     "companyName": "BobTheMadCow",
     "watchapp": {
         "watchface": true
     },
     "resources": {
         "media": [
+            {
+                "menuIcon": true,
+                "type": "png",
+                "name": "LIGHT_BOX_ICON",
+                "file": "images/LightBoxIcon.png"
+            },
             {
                 "type": "png-trans",
                 "name": "IMAGE_MASK",

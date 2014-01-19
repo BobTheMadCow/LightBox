@@ -4,16 +4,23 @@
 #define BG_COLOR_DEFAULT GColorBlack
 #define FG_COLOR_DEFAULT GColorWhite
 #define MAX_LIGHTS 4
-#define MAX_STARTUP_SEQUENCES 6
+#define MAX_STARTUP_SEQUENCES 2
 #define CURVE AnimationCurveEaseInOut
 #define ANIMATION_DELAY 250
 #define ANIMATION_DURATION 750
+
+typedef enum { 
+	Simultaneous = 0,
+	Sequential = 1, 
+	Staggered = 2 
+}Mode;
 	
+static Mode mode;
+
 GColor bg_color;
 GColor fg_color;
 
 static Layer *light[MAX_LIGHTS];
-static Layer *light_test;
 static Window *window;
 Layer *root_layer;
 static BitmapLayer *mask_layer;
@@ -32,22 +39,38 @@ static int my_round(float x)
 
 static void run_animations()
 {
+	int delay;
 	for(int i = 0; i < MAX_LIGHTS; i++)
 	{
-		from_location[i] = layer_get_frame(light[i]);
-		if(animation_is_scheduled((Animation*)light_animation[i]))
+		switch(mode)
 		{
-			animation_unschedule((Animation*)light_animation[i]);
+			case Simultaneous:
+				delay = ANIMATION_DELAY;
+				break;
+			case Sequential:
+				delay = ANIMATION_DELAY + (i * (ANIMATION_DELAY + ANIMATION_DURATION));
+				break;
+			case Staggered:
+				delay = (i+1) * ANIMATION_DELAY;
+				break;
+			default:
+				delay = 0;
+				break;
 		}
-		light_animation[i] = property_animation_create_layer_frame(light[i], &from_location[i], &location[i]);
-		animation_set_curve((Animation*)light_animation[i], CURVE);
-		animation_set_delay((Animation*)light_animation[i], ANIMATION_DELAY + (i * (ANIMATION_DELAY + ANIMATION_DURATION))); //animations fire sequentially
-		animation_set_duration((Animation*)light_animation[i], ANIMATION_DURATION);
-		animation_schedule((Animation*)light_animation[i]);
+		from_location[i] = layer_get_frame(light[i]);
+
+		if(!animation_is_scheduled((Animation*)light_animation[i]))
+		{
+			light_animation[i] = property_animation_create_layer_frame(light[i], &from_location[i], &location[i]);
+			animation_set_curve((Animation*)light_animation[i], CURVE);
+			animation_set_delay((Animation*)light_animation[i], delay);
+			animation_set_duration((Animation*)light_animation[i], ANIMATION_DURATION);
+			animation_schedule((Animation*)light_animation[i]);
+		}
 	}
 }
 
-static void set_locations(struct tm *tick_time)
+static void set_next_locations(struct tm *tick_time)
 {
 	int hour = (tick_time->tm_hour)%12;
 	int minute = my_round((tick_time->tm_min) / 5.0f) % 12;
@@ -92,7 +115,7 @@ static void set_locations(struct tm *tick_time)
 		location[j] = TEN_M;
 		j++;
 		j = j % MAX_LIGHTS;
-		if(minute == 1)
+		if(minute == 2)
 		{
 			location[j] = PAST;
 		}
@@ -111,7 +134,7 @@ static void set_locations(struct tm *tick_time)
 		j++;
 		j = j % MAX_LIGHTS;
 
-		if(minute == 1)
+		if(minute == 3)
 		{
 			location[j] = PAST;
 		}
@@ -130,7 +153,7 @@ static void set_locations(struct tm *tick_time)
 		j++;
 		j = j % MAX_LIGHTS;
 
-		if(minute == 1)
+		if(minute == 4)
 		{
 			location[j] = PAST;
 		}
@@ -149,7 +172,7 @@ static void set_locations(struct tm *tick_time)
 		j++;
 		j = j % MAX_LIGHTS;
 
-		if(minute == 1)
+		if(minute == 5)
 		{
 			location[j] = PAST;
 		}
@@ -172,6 +195,13 @@ static void set_locations(struct tm *tick_time)
 		j++;
 		j = j % MAX_LIGHTS;
 	}
+	
+	if(minute == 0 && tick_time->tm_min > 30)
+	{
+		hour++;
+		hour = hour % 12;
+	}
+	
 	switch(hour)
 	{
 		case 1: location[j] = ONE; break;
@@ -189,27 +219,6 @@ static void set_locations(struct tm *tick_time)
 	}
 }
 
-static void set_startup_locations()
-{
-	switch(rand() % MAX_STARTUP_SEQUENCES)
-	{
-		case 0:
-			//Four corners
-			layer_set_frame(light[0], GRect(-144,-168,144,168));
-			layer_set_frame(light[1], GRect(-144,168,144,168));
-			layer_set_frame(light[2], GRect(144,168,144,168));
-			layer_set_frame(light[3], GRect(144,-168,144,168));
-			break;
-		default:
-			//Center point
-			layer_set_frame(light[0], GRect(72,84,0,0));
-			layer_set_frame(light[1], GRect(73,84,0,0));
-			layer_set_frame(light[2], GRect(73,85,0,0));
-			layer_set_frame(light[3], GRect(72,85,0,0));
-			break;
-	}
-}
-
 static void light_draw(Layer *layer, GContext *ctx)
 {
 	graphics_context_set_fill_color(ctx, fg_color);
@@ -217,13 +226,43 @@ static void light_draw(Layer *layer, GContext *ctx)
 	graphics_fill_rect(ctx, GRect(0,0,144,168), 0, GCornerNone);//layer_get_frame(layer));
 }
 
+static void init_layers()
+{
+	switch(rand() % MAX_STARTUP_SEQUENCES)
+	{
+		case 0:
+			//Four corners
+			light[0] = layer_create(GRect(-144,-168,144,168));
+			light[1] = layer_create(GRect(-144,168,144,168));
+			light[2] = layer_create(GRect(144,168,144,168));
+			light[3] = layer_create(GRect(144,-168,144,168));
+			mode = Simultaneous;
+			break;
+		default:
+			//Center point
+			light[0] = layer_create(GRect(72,84,0,0));
+			light[1] = layer_create(GRect(73,84,0,0));
+			light[2] = layer_create(GRect(73,85,0,0));
+			light[3] = layer_create(GRect(72,85,0,0));
+			mode = Simultaneous;
+			break;
+	}
+	
+	for(int i = 0; i < MAX_LIGHTS; i++)
+	{
+		layer_set_clips(light[i], true);
+		layer_set_update_proc(light[i], light_draw);
+		layer_add_child(root_layer, light[i]);
+	}
+	
+	run_animations();
+}
+
 static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
 {
-	if(((tick_time->tm_min)+2)%5 == 0)
-	{
-		set_locations(tick_time);
-		run_animations();
-	}
+	set_next_locations(tick_time);
+	mode = Staggered;
+	run_animations();
 }
 
 void handle_init(void)
@@ -236,38 +275,29 @@ void handle_init(void)
 	window_stack_push(window, true);
 	root_layer = window_get_root_layer(window);
 
-	for(int i = 0; i < MAX_LIGHTS; i++)
-	{
-		light[i] = layer_create(GRect(0,0,0,0));
-		layer_set_clips(light[i], true);
-		layer_set_update_proc(light[i], light_draw);
-		layer_add_child(root_layer, light[i]);
-	}
+	time_t now = time(NULL);
+    struct tm *time = localtime(&now);
+	srand(now);
 	
-
+	set_next_locations(time);
+	init_layers();
+	
 	mask = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_MASK_BLACK);
 	mask_layer = bitmap_layer_create(layer_get_frame(root_layer));
 	bitmap_layer_set_bitmap(mask_layer, mask);
 	bitmap_layer_set_compositing_mode(mask_layer, GCompOpClear);
 	layer_add_child(root_layer, bitmap_layer_get_layer(mask_layer));
-	
-	time_t now = time(NULL);
-	struct tm *time = localtime(&now);
-	srand(now);
-
-	set_startup_locations(time);
-	set_locations(time);
-	run_animations();
 
 	tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);        
 }
 
 void handle_deinit(void) 
 {
+	animation_unschedule_all();
 	for(int i = 0; i < MAX_LIGHTS; i++)
 	{
 		layer_destroy(light[i]);
-//		property_animation_destroy(light_animation[i]);
+		property_animation_destroy(light_animation[i]);
 	}
 	bitmap_layer_destroy(mask_layer);
 	window_destroy(window);
