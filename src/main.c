@@ -56,11 +56,11 @@ static void run_animations()
 				break;
 			case Sequential:
 				delay = i * (animation_duration/4);
-				duration = 3 * (animation_duration/16);
+				duration = (animation_duration/4);
 				break;
 			case Staggered:
-				delay = i * (animation_duration/16);
-				duration = 3 * (animation_duration/16);
+				delay = i * (animation_duration/8);
+				duration = 5 * (animation_duration/8);
 				break;
 			default:
 				delay = 0;
@@ -177,7 +177,7 @@ static void init_layers()
 			mode = Simultaneous;
 			break;
 		case 3:
-			//Card Draw
+			//Card deal
 			light[0] = layer_create(GRect(65,168,14,16));
 			light[1] = layer_create(GRect(65,168,14,16));
 			light[2] = layer_create(GRect(65,168,14,16));
