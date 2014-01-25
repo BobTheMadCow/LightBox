@@ -229,16 +229,17 @@ static void set_battery_locations(int charge_level)
 	location[2] = AT;
 	switch(charge_level/10)
 	{
-		case 1: location[1] = TEN_H;
-		case 2: location[1] = TWENTY;
-		case 3: location[1] = THIRTY;
-		case 4: location[1] = FORTY;
-		case 5: location[1] = FIFTY;
-		case 6: location[1] = SIXTY;
-		case 7: location[1] = SEVENTY;
-		case 8: location[1] = EIGHTY;
-		case 9: location[1] = NINETY;
-		case 10: location[1] = HUNDRED;
+		case 1: location[1] = TEN_H; break;
+		case 2: location[1] = TWENTY; break;
+		case 3: location[1] = THIRTY; break;
+		case 4: location[1] = FORTY; break;
+		case 5: location[1] = FIFTY; break;
+		case 6: location[1] = SIXTY; break;
+		case 7: location[1] = SEVENTY; break;
+		case 8: location[1] = EIGHTY; break;
+		case 9: location[1] = NINETY; break;
+		case 10: location[1] = HUNDRED; break;
+		default: location[1] = FIVE_H; break;
 	}
 	location[0] = PERCENT;
 }
