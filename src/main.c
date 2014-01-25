@@ -1,5 +1,6 @@
 #include <pebble.h>
-#include "lightbox.h"
+#include <lightbox.h>
+#include <settings.h>
 	
 #define BG_COLOR GColorBlack
 #define FG_COLOR GColorWhite
@@ -22,19 +23,11 @@ static BitmapLayer *mask_layer;
 static GBitmap *mask;
 static InverterLayer *inverter;
 
-#define INVERT_COLORS_KEY 0
-#define ANIMATION_DURATION_KEY 1
-#define VIBE_KEY 2
-#define DEFAULT_INVERT_COLORS_VALUE false
-#define DEFALUT_ANIMATION_DURATION_VALUE 3000 //3 seconds - short enough for the animation to complete before the light goes out.
-#define DEFAULT_VIBE_VALUE false
-bool invert_colors;
-int animation_duration;
-bool vibe;
-
 static PropertyAnimation *light_animation[MAX_LIGHTS];
 
 static GRect location[MAX_LIGHTS];
+
+static bool battery_display_toggle = false;
 
 static int my_round(float x)
 {
@@ -217,6 +210,7 @@ static void init_layers()
 
 static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
 {
+	battery_display_toggle = true;
 	set_next_locations(tick_time);
 	if((tick_time->tm_min + 2) % 5 == 0) //display updates at 3, 8, 13, 18, 23, 28, 33, 38, 43, 48, 53, & 58
 	{
@@ -229,30 +223,51 @@ static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
 	}
 }
 
-static void init_settings()
+static void set_battery_locations(int charge_level)
 {
-	invert_colors = persist_exists(INVERT_COLORS_KEY) ? persist_read_bool(INVERT_COLORS_KEY) : DEFAULT_INVERT_COLORS_VALUE;
-	animation_duration = persist_exists(ANIMATION_DURATION_KEY) ? persist_read_int(ANIMATION_DURATION_KEY) : DEFALUT_ANIMATION_DURATION_VALUE;
-	vibe = persist_exists(VIBE_KEY) ? persist_read_bool(VIBE_KEY) : DEFAULT_VIBE_VALUE;
+	location[3] = BATTERY;
+	location[2] = AT;
+	switch(charge_level/10)
+	{
+		case 1: location[1] = TEN_H;
+		case 2: location[1] = TWENTY;
+		case 3: location[1] = THIRTY;
+		case 4: location[1] = FORTY;
+		case 5: location[1] = FIFTY;
+		case 6: location[1] = SIXTY;
+		case 7: location[1] = SEVENTY;
+		case 8: location[1] = EIGHTY;
+		case 9: location[1] = NINETY;
+		case 10: location[1] = HUNDRED;
+	}
+	location[0] = PERCENT;
+}
+
+void handle_tap(AccelAxisType axis, int32_t direction) 
+{
+	if(battery_display_toggle)
+	{
+		BatteryChargeState charge_state;
+		charge_state = battery_state_service_peek();
+		set_battery_locations(charge_state.charge_percent);
+		mode = Simultaneous;
+		run_animations();
+		battery_display_toggle = false;
+	}
+	else
+	{
+		time_t now = time(NULL);
+	    struct tm *time = localtime(&now);
+		set_next_locations(time);
+		mode = Simultaneous;
+		run_animations();
+		battery_display_toggle = true;
+	}
 }
 
 static void update_settings()
 {
-	if(invert_colors)
-	{
-		layer_set_hidden(inverter_layer_get_layer(inverter), false);
-	}
-	else
-	{
-		layer_set_hidden(inverter_layer_get_layer(inverter), true);
-	}
-}
-
-static void save_settings()
-{
-    persist_write_bool(INVERT_COLORS_KEY, invert_colors);
-    persist_write_int(ANIMATION_DURATION_KEY, animation_duration);
-	persist_write_bool(VIBE_KEY, vibe);
+	layer_set_hidden(inverter_layer_get_layer(inverter), !invert_colors);
 }
 
 void handle_init(void)
@@ -279,12 +294,10 @@ void handle_init(void)
 
 	inverter = inverter_layer_create(GRect(0,0,144,168));
 	layer_add_child(root_layer, inverter_layer_get_layer(inverter));
-	if(!invert_colors)
-	{
-		layer_set_hidden(inverter_layer_get_layer(inverter), true);
-	}
+	layer_set_hidden(inverter_layer_get_layer(inverter), !invert_colors); //hide layer to not invert colors
 	
 	tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);        
+	accel_tap_service_subscribe(handle_tap);
 }
 
 void handle_deinit(void) 

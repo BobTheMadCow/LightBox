@@ -1,4 +1,4 @@
-#define CHAR_HEIGHT 14
+#define CHAR_HEIGHT 15
 #define Y_OFFSET 3
 #define ROW_HEIGHT 15
 
