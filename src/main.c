@@ -27,8 +27,6 @@ static PropertyAnimation *light_animation[MAX_LIGHTS];
 
 static GRect location[MAX_LIGHTS];
 
-static bool battery_display_toggle = false;
-
 static int my_round(float x)
 {
         if((x-(int)x) >= 0.5){return (int)x + 1;}
@@ -210,7 +208,6 @@ static void init_layers()
 
 static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
 {
-	battery_display_toggle = true;
 	set_next_locations(tick_time);
 	if((tick_time->tm_min + 2) % 5 == 0) //display updates at 3, 8, 13, 18, 23, 28, 33, 38, 43, 48, 53, & 58
 	{
@@ -246,23 +243,24 @@ static void set_battery_locations(int charge_level)
 
 void handle_tap(AccelAxisType axis, int32_t direction) 
 {
-	if(battery_display_toggle)
-	{
-		BatteryChargeState charge_state;
-		charge_state = battery_state_service_peek();
-		set_battery_locations(charge_state.charge_percent);
-		mode = Simultaneous;
-		run_animations();
-		battery_display_toggle = false;
-	}
-	else
+	GRect battery_rect = BATTERY;
+	GRect light_rect = layer_get_frame(light[3]);
+	//if currently displaying battery level, switch to time display
+	if(grect_equal(&location[3], &battery_rect) && grect_equal(&light_rect, &battery_rect))
 	{
 		time_t now = time(NULL);
 	    struct tm *time = localtime(&now);
 		set_next_locations(time);
 		mode = Simultaneous;
 		run_animations();
-		battery_display_toggle = true;
+	}
+	else	//switch to battery display
+	{
+		BatteryChargeState charge_state;
+		charge_state = battery_state_service_peek();
+		set_battery_locations(charge_state.charge_percent);
+		mode = Simultaneous;
+		run_animations();
 	}
 }
 
